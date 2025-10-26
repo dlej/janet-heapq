@@ -1,7 +1,7 @@
 ```
 Ported from https://github.com/python/cpython/blob/main/Lib/heapq.py
 
-Copyright (c) 2001 Python Software Foundation; All Rights Reserved
+Copyright (c) 2001 Python Software Foundation; All Rights Reserved.
 ```
 
 (use judge)
@@ -40,9 +40,9 @@ becomes
              'sift-down true
              'push true
              'pop true
+             'replace true
              'push-pop true
              'heapify true
-             'replace true
              'merge true
              'n-largest true} head)
       [head ;(walk walk-for-sift (tuple/slice form 1)) 'lt]
@@ -50,10 +50,14 @@ becomes
   ~(defn ,;front-matter ,args (default lt <) ,;(walk-for-sift body)))
 
 
-# 'heap' is a heap at all indices >= startpos, except possibly for pos.  pos
-# is the index of a leaf with a possibly out-of-order value.  Restore the
-# heap invariant.
-(defn- sift-down [heap start-pos pos lt]
+(defn- sift-down
+  `Sift an item down towards the root (bubble up).
+
+'heap' is a heap at all indices >= startpos, except possibly for pos.  pos
+is the index of a leaf with a possibly out-of-order value.  Restore the
+heap invariant. Returns the heap.
+  `
+  [heap start-pos pos lt]
   (def new-item (heap pos))
   (var pos pos)
   (var parent-pos (div (dec pos) 2))
@@ -70,7 +74,9 @@ becomes
 (test (sift-down @[1 2 3 4 5 6 0] 2 6 <) @[1 2 0 4 5 6 3])
 
 
-(defn- sift-up [heap pos lt]
+(defn- sift-up
+  "Sift an item up away from the root (bubble down). Returns the heap."
+  [heap pos lt]
   (var pos pos)
   (def start-pos pos)
   (def new-item (heap pos))
@@ -98,7 +104,7 @@ becomes
 
 
 (defn-heap push
-  "Push item onto heap, maintaining the heap invariant."
+  "Push item onto heap, maintaining the heap invariant. Returns the heap."
   [heap item]
   (array/push heap item)
   (sift-down heap 0 (dec (length heap))))
@@ -107,8 +113,9 @@ becomes
         (seq [i :range [0 3]]
           (push heap i)
           (push heap (- i))
-          (array ;heap)))
+          (array/slice heap)))
       @[@[0 0] @[-1 0 1 0] @[-2 0 -1 0 2 1]])
+(test (let [heap @[]] (push heap 0)) @[0])
 
 
 (defn-heap pop
@@ -187,7 +194,7 @@ returned may be larger than item!
 
 
 (defn-heap heapify
-  "Transform list into a heap, in-place, in O(len(x)) time."
+  "Transform list into a heap, in-place, in O(len(x)) time. Returns the heap."
   [heap]
   # Transform bottom-up.  The largest index there's any point to looking at
   # is the largest with a child index in-range, so must have 2*i + 1 < n,
@@ -195,24 +202,22 @@ returned may be larger than item!
   # j-1 is the largest, which is n//2 - 1.  If n is odd = 2*j+1, this is
   # (2*j+1-1)/2 = j so j-1 is the largest, and that's again n//2-1.
   (loop [i :in (range (dec (div (length heap) 2)) -1 -1)]
-    (sift-up heap i)))
+    (sift-up heap i))
+  heap)
 
 (test (let [heap @[0 1 2 3 4 5 6 7]]
-        (heapify heap)
-        heap)
+        (heapify heap))
       @[0 1 2 3 4 5 6 7])
 (test (let [heap @[7 6 5 4 3 2 1 0]]
-        (heapify heap)
-        heap)
+        (heapify heap))
       @[0 3 1 4 7 2 5 6])
 (test (let [heap @[9 4 8 2 9 4 3 0 8]]
-        (heapify heap)
-        heap)
+        (heapify heap))
       @[0 2 3 4 9 4 8 9 8])
 
 
 (defn-heap merge
-  ````Merge multiple sorted inputs into a single sorted output.````
+  "Merge multiple sorted inputs (any iterable type) into a single sorted output, as an iterable fiber. The iterables argument should be an array or tuple of iterables."
   [iterables]
   (def heap @[])
   (def ks (map |(next $) iterables))
@@ -239,6 +244,9 @@ returned may be larger than item!
            (merge []))
       @[])
 (test (map identity
+           (merge [] []))
+      @[])
+(test (map identity
            (merge [[4 5 6]]))
       @[4 5 6])
 (test (map identity
@@ -260,7 +268,7 @@ returned may be larger than item!
 
 
 (defn-heap n-largest
-  "Find the n largest elements in an array or tuple.
+  "Find the n largest elements in an array or tuple, in descending order.
   
   Returns the same items as (take n (reverse (sorted arrtup))), but more efficient."
   [arrtup n]
@@ -314,3 +322,63 @@ returned may be larger than item!
                   (heapify a lt)
                   (replace a b lt)
                   (merge [a b c] lt)))))
+
+
+(def- Heap
+  @{:lt <
+    :array (fn [self] (array/slice (self :arr)))
+    :push (fn [self x] (push (self :arr) x (self :lt)) self)
+    :pop (fn [self] (pop (self :arr) (self :lt)))
+    :replace (fn [self x] (replace (self :arr) x (self :lt)))
+    :push-pop (fn [self x] (push-pop (self :arr) x (self :lt)))})
+
+
+(defn-heap new
+  "Create a new heap object."
+  []
+  (table/setproto @{:lt lt :arr @[]} Heap))
+
+(test (let [heap (new >)]
+        (for i 0 8
+          (:push heap i))
+        (:array heap)) @[7 6 5 3 2 1 4 0])
+(test (let [heap (new >)]
+        (seq [i :range [0 3]]
+          (:push heap i)
+          (:push heap (- i))
+          (:array heap)))
+      @[@[0 0] @[1 0 0 -1] @[2 1 0 -1 0 -2]])
+(test (let [heap (new >)] (:array (:push heap 0))) @[0])
+
+
+(defn-heap from
+  "Create a new heap object from an iterable or fiber."
+  [ind]
+  (let [heap (table/setproto
+               @{:lt lt
+                 :arr (heapify (map identity ind))} Heap)]
+    heap))
+
+(test (:array (from [0 1 2 3 4 5 6 7] >)) @[7 4 6 3 0 5 2 1])
+
+(test (let [heap (from [0 1 2 3 4 5 6] >)]
+        (seq [i :in (range 8 2 -1)]
+          (:replace heap i)
+          (:array heap)))
+      @[@[8 4 5 3 1 0 2]
+        @[7 4 5 3 1 0 2]
+        @[6 4 5 3 1 0 2]
+        @[5 4 5 3 1 0 2]
+        @[5 4 4 3 1 0 2]
+        @[4 4 3 3 1 0 2]])
+
+(test (let [heap (from [0 1 2 3 4 5 6] >)]
+        (seq [i :in (range 8 2 -1)]
+          (:push-pop heap i)
+          (:array heap)))
+      @[@[6 4 5 3 1 0 2]
+        @[6 4 5 3 1 0 2]
+        @[6 4 5 3 1 0 2]
+        @[5 4 5 3 1 0 2]
+        @[5 4 4 3 1 0 2]
+        @[4 4 3 3 1 0 2]])
