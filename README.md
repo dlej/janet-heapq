@@ -109,6 +109,8 @@ To make it easier to use custom comprison functions without having to remember t
 # 5
 (:array heap)
 # @[-1 2 1 3]
+(:length heap)
+# 4
 ```
 
 ## Testing

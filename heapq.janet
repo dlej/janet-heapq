@@ -326,6 +326,7 @@ returned may be larger than item!
 
 (def- Heap
   @{:lt <
+    :length (fn [self] (length (self :arr)))
     :array (fn [self] (array/slice (self :arr)))
     :push (fn [self x] (push (self :arr) x (self :lt)) self)
     :pop (fn [self] (pop (self :arr) (self :lt)))
@@ -360,6 +361,7 @@ returned may be larger than item!
     heap))
 
 (test (:array (from [0 1 2 3 4 5 6 7] >)) @[7 4 6 3 0 5 2 1])
+(test (:length (from [0 1 2 3 4 5 6 7] >)) 8)
 
 (test (let [heap (from [0 1 2 3 4 5 6] >)]
         (seq [i :in (range 8 2 -1)]
