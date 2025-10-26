@@ -1,6 +1,6 @@
 # Heapq
 
-Heapq is a binary heap library for Janet similar to (and borrowing from) Python®'s [`heapq` module](https://docs.python.org/3/library/heapq.html). You can install it with `jpm`:
+Heapq is a pure-[Janet](https://janet-lang.org/) binary heap library similar to (and borrowing from) Python®'s [`heapq` module](https://docs.python.org/3/library/heapq.html). You can install it with `jpm`:
 
 ```janet
 # project.janet
