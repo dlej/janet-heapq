@@ -128,6 +128,12 @@ The library also includes more extensive tests ported from the [CPython heapq te
 jpm test
 ```
 
+## Release notes
+
+### v0.1.0 - Initial implementation
+
+Replicates Python's [`heapq` module](https://docs.python.org/3/library/heapq.html) in pure Janet using arrays with optional custom comparison functions. Core library is pure functions, with an object-oriented encapsulation in addition for convenience.
+
 ## Copyright and License Information
 
 Copyright © 2025 Daniel LeJeune.
